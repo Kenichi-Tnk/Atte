@@ -1,31 +1,45 @@
-<div class="container">
-    <div class="user-name">
-      <p><?php $user = Auth::user(); ?>{{ $user->name}}さんお疲れ様です！</p>
+@extends('layouts.app')
+
+@section('css')
+    <link rel="stylesheet" href="{{ asset('css/index.css') }}">
+@endsection
+
+@section('content')
+    <div class="header__wrap">
+        <p class="header__text">
+            {{ \Auth::user()->name }}さんお疲れ様です！
+        </p>
     </div>
-    <div class="wrapper">
-      <div class="content">
-        <form action="/attendancein" method="POST" >
+
+    <form class="form__wrap" action="{{ route('work') }}" method="post">
         @csrf
-          <input type="submit"   class="stamp"  value="勤務開始" <?php if ($btn['attendance_in'] == false) { ?> disabled <?php } ?>>
-        </form>
-        <form action="/attendanceout" method="POST">
-        @csrf
-          <input type="submit"   class="stamp"  value="勤務終了" <?php if ($btn['attendance_out'] == false) { ?> disabled <?php } ?>>
-        </form>
-      </div>
-      <div class="content">
-        <form action="/restin" method="POST">
-        @csrf
-          <input type="submit"   class="stamp"  value="休憩開始" <?php if ($btn['rest_in'] == false) { ?> disabled <?php } ?>>
-        </form>
-        <form action="/restout" method="POST">
-        @csrf
-          <input type="submit"   class="stamp"  value="休憩終了" <?php if ($btn['rest_out'] == false) { ?> disabled <?php } ?>>
-        </form>  
-      </div>
-    </div>
-  </div>
-  <footer class="footer">
-    Atte,inc.
-  </footer>
+        <div class="form__item">
+            @if($status == 0)
+                <button class="form__item-button" type="submit" name="start_work">勤務開始</button>
+            @else
+                <button class="form__item-button" type="submit" name="start_work" disabled>勤務開始</button>
+            @endif
+        </div>
+        <div class="form__item">
+            @if($status == 1)
+                <button class="form__item-button" type="submit" name="end_work">勤務終了</button>
+            @else
+                <button class="form__item-button" type="submit" name="end_work" disabled>勤務終了</button>
+            @endif
+        </div>
+        <div class="form__item">
+            @if($status == 1)
+                <button class="form__item-button" type="submit" name="start_rest">休憩開始</button>
+            @else
+                <button class="form__item-button" type="submit" name="start_rest" disabled>休憩開始</button>
+            @endif
+        </div>
+        <div class="form__item">
+            @if($status == 2)
+                <button class="form__item-button" type="submit" name="end_rest">休憩終了</button>
+            @else
+                <button class="form__item-button" type="submit" name="end_rest" disabled>休憩終了</button>
+            @endif
+        </div>
+    </form>
 @endsection
