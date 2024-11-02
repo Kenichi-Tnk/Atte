@@ -1,4 +1,4 @@
-.header__wrap {
+.header__content {
   padding-top: 60px;
   padding-bottom: 10px;
   text-align: center;
@@ -30,7 +30,7 @@
   background-color: #eee;
 }
 
-.password__wrap {
+.password__content {
   display: flex;
 }
 
@@ -40,7 +40,7 @@
   color: white;
 }
 
-.register__wrap {
+.register__content {
   text-align: center;
   margin-top: 20px;
   padding-top: 20px;

@@ -1,4 +1,4 @@
-.header__wrap {
+.header__content {
     padding-top: 20px;
     padding-bottom: 10px;
 }
@@ -8,7 +8,7 @@
     font-size: 20px;
 }
 
-.form__wrap {
+.form__content {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;

@@ -11,13 +11,13 @@
             <span class="register__message-text">{{ session('message') }}</span>
         </div>
     @endif
-    <div class="header__wrap">
+    <div class="header__content">
         <span class="header__text">
             会員登録
         </span>
     </div>
 
-    <form class="form__wrap" action="{{ route('register') }}" method="post">
+    <form class="form__content" action="{{ route('register') }}" method="post">
         @csrf
         <div class="form__content">
             <div class="form__item">
@@ -58,7 +58,7 @@
         </div>
     </form>
 
-    <div class="register__wrap">
+    <div class="register__content">
         <div class="register__item">
             <p class="register__item-text">
                 アカウントをお持ちの方はこちらから

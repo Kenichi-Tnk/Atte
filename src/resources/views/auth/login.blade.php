@@ -10,13 +10,13 @@
             <span class="login-error__message-text">{{ session('message') }}</span>
         </div>
     @endif
-    <div class="header__wrap">
+    <div class="header__content">
         <span class="header__text">
             ログイン
         </span>
     </div>
 
-    <form class="form__wrap" action="/login" method="post">
+    <form class="form__content" action="/login" method="post">
         @csrf
         <div class="form__item">
             <input class="form__input" type="email" name="email" placeholder="メールアドレス">
@@ -39,7 +39,7 @@
         </div>
     </form>
 
-    <div class="register__wrap">
+    <div class="register__content">
         <div class="register__item">
             <p class="register__item-text">
                 アカウントをお持ちでない方はこちらから

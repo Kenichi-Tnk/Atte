@@ -5,13 +5,13 @@
 @endsection
 
 @section('content')
-    <div class="header__wrap">
+    <div class="header__content">
         <p class="header__text">
             {{ \Auth::user()->name }}さんお疲れ様です！
         </p>
     </div>
 
-    <form class="form__wrap" action="{{ route('work') }}" method="post">
+    <form class="form__content" action="{{ route('work') }}" method="post">
         @csrf
         <div class="form__item">
             @if($status == 0)
