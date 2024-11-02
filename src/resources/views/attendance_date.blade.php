@@ -5,7 +5,7 @@
 @endsection
 
 @section('content')
-    <form class="header__wrap" action="{{ route('per/date') }}" method="post">
+    <form class="header__content" action="{{ route('per/date') }}" method="post">
         @csrf
         <button class="date__change-button" name="prevDate"><</button>
         <input type="hidden" name="displayDate" value="{{ $displayDate }}">
@@ -13,7 +13,7 @@
         <button class="date__change-button" name="nextDate">></button>
     </form>
 
-    <div class="table__wrap">
+    <div class="table__content">
         <table class="attendance__table">
             <tr class="table__row">
                 <th class="table__header">名前</th>
@@ -33,5 +33,5 @@
             @endforeach
         </table>
     </div>
-    {{ $users->links('vendor/pagination/paginate') }}
+    {{ $users->links('/pagination/paginate') }}
 @endsection

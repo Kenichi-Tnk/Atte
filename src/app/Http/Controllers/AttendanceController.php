@@ -2,154 +2,126 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Attendance;
-use App\Models\Rest;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
+use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\Work;
+use App\Models\Rest;
+use Illuminate\Support\Facades\DB;
+
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Carbon;
+
 
 class AttendanceController extends Controller
 {
-    public function index()
+    
+    
+        // ホーム画面表示
+    public function punch()
     {
-        $date = Carbon::today()->format('Y-m-d');
-        $user = Auth::user();
-        $pastRest = Rest::getPastRest();
-        $pastAttendance = Attendance::getPastAttendance();
-        $latestAttendance = Attendance::getLatestAttendance();
-        
-        // 休憩したまま日を跨いだ場合、rest_outを'23:59:59'に更新 
-        if (($pastRest)  && $pastRest->rest_out == null) {
-            $pastRest->update([
-                'rest_out' => '23:59:59',
-            ]);
-        }
+        $now_date = Carbon::now()->format('Y-m-d');
+        $user_id = Auth::user()->id;
+        $confirm_date = Work::where('user_id', $user_id)
+            ->where('date', $now_date)
+            ->first();
 
-        // 出勤したまま日を跨いだ場合、attendance_outを'23:59:59'に更新
-        // attendance_outに'23:59:59'が入ったら、出勤中を継続するため日を跨いだ当日の'attendance_in'に'00:00:00'を格納する
-        if (($pastAttendance) && $pastAttendance->attendance_out == null) {
-            $pastAttendance->update([
-                'attendance_out' => '23:59:59',
-            ]);
-            Attendance::create([
-                'user_id' => $user->id,
-                'date'  => $date,
-                'attendance_in' => '00:00:00',
-            ]);            
+        if (!$confirm_date) {
+            $status = 0;
+        } else {
+            $status = Auth::user()->status;
         }
-
-        $attendance_in = false;
-        $attendance_out = false;
-        $rest_in = false;
-        $rest_out = false;
-        
-        if ($latestAttendance !== null ) { //勤務データがあり
-            if ($latestAttendance->attendance_out == null ) {//退勤データがなく
-                $rest = Rest::where('attendance_id', $latestAttendance->id)->latest()->first();
-                if ($rest!== null ) { //休憩データがあり
-                    if ($rest->rest_out !== null) { // 休憩終了していて
-                        $attendance_out = true;
-                        $rest_in = true;
-                    } else { // 休憩中で                        
-                        $rest_out = true;
-                    }
-                }else{//勤務データがなく
-                    $attendance_out = true;
-                    $rest_in = true;
-                }
-            }
-        }else{
-            $attendance_in = true;    
-        }
-
-        $btn = [
-            'attendance_in' => $attendance_in,
-            'attendance_out' => $attendance_out,
-            'rest_in' => $rest_in,
-            'rest_out' => $rest_out,
-        ];
-        return view('index', ['btn' => $btn]);
-    }
-    public function attendancein()
-    {
-        $user = Auth::user();
-        $date = Carbon::today()->format('Y-m-d');
-        $time = Carbon::now()->toTimeString();
-        $form = [
-            'user_id' => $user->id,
-            'date'  => $date,
-            'attendance_in' => $time,
-        ];
-        Attendance::create($form);
-        return redirect('/index');
+        return view('index', compact('status'));
     }
 
-    public function attendanceout()
+
+    // 打刻処理
+    public function work(Request $request)
     {
-        $date = Carbon::today()->format('Y-m-d');
-        $user = Auth::user();
-        $latestAttendance = Attendance::where('user_id', $user->id)->whereDate('date',$date)->latest()->first();
-        $latestAttendance->update([
-            'attendance_out' => Carbon::now()->toTimeString()
-        ]);
-        return redirect('/index');
+        $now_date = Carbon::now()->format('Y-m-d');
+        $now_time = Carbon::now()->format('H:i:s');
+        $user_id = Auth::user()->id;
+        if ($request->has('start_rest') || $request->has('end_rest')) {
+            $work_id = Work::where('user_id', $user_id)
+                ->where('date', $now_date)
+                ->first()
+                ->id;
+        }
+
+        // 勤務開始
+        if ($request->has('start_work')) {
+            $attendance = new Work();
+            $attendance->date = $now_date;
+            $attendance->start = $now_time;
+            $attendance->user_id = $user_id;
+            $status = 1;
+        }
+
+        // 休憩開始
+        if ($request->has('start_rest')) {
+            $attendance = new Rest();
+            $attendance->start = $now_time;
+            $attendance->work_id = $work_id;
+            $status = 2;
+        }
+
+        // 休憩終了
+        if ($request->has('end_rest')) {
+            $attendance = Rest::where('work_id', $work_id)
+                ->whereNotNull('start')
+                ->whereNull('end')
+                ->first();
+            $attendance->end = $now_time;
+            $status = 1;
+        }
+
+        // 勤務終了
+        if ($request->has('end_work')) {
+            $attendance = Work::where('user_id', $user_id)
+                ->where('date', $now_date)
+                ->first();
+            $attendance->end = $now_time;
+            $status = 3;
+        }
+
+        $user = User::find($user_id);
+        $user->status = $status;
+        $user->save();
+
+        $attendance->save();
+
+        return redirect('/')->with(compact('status'));
     }
 
-    public function dateindex(Request $request)
+    // 日別一覧表示
+    public function indexDate(Request $request)
     {
-        $date = $request->input("date")?: Carbon::today()->format("Y-m-d");
-        $attendances = Attendance::whereDate('date', $date)->paginate(5);
-        foreach ($attendances as $attendance) {
-            $rests = $attendance->rests;
-            $total_rest_time = 0; 
-            foreach ($rests as $rest) {
-                $total_rest_time = $total_rest_time + strtotime($rest->rest_out) - strtotime($rest->rest_in);
-            }
-            $rest_hour = floor($total_rest_time / 3600); // 時を算出（1時間＝300秒）
-            $rest_minute = floor(($total_rest_time / 60) % 60); // 分を算出（1分＝60秒）
-            $rest_seconds = floor($total_rest_time % 60); //秒を算出
-            $attendance->rest_time = sprintf('%02d:%02d:%02d', $rest_hour, $rest_minute, $rest_seconds);
+        $displayDate = Carbon::now();
 
-            $restraint_time = strtotime($attendance->attendance_out) - strtotime($attendance->attendance_in);//就業開始時間と就業終了時間の差(拘束時間)
-            $total_work_time = $restraint_time - $total_rest_time;//拘束時間と合計休憩時間の差
-            $work_hour = floor($total_work_time / 3600);
-            $work_minute = floor(($total_work_time / 60) % 60);
-            $work_second = floor($total_work_time % 60);
-            $attendance->work_time = sprintf('%02d:%02d:%02d', $work_hour, $work_minute, $work_second);
-        }
-        return view('date', compact("date", "attendances"));
+        $users = DB::table('attendance_view_table')
+            ->whereDate('date', $displayDate)
+            ->paginate(5);
+
+        return view('attendance_date', compact('users', 'displayDate'));
     }
 
-    public function otherday(Request $request)
-    {
-        // 一日前（'>'ボタン
-        if ($request->input('before') != null) {
-            $date = date('Y-m-d', strtotime('-1day', strtotime($request->input('date'))));
-            $attendances = Attendance::whereDate('date', $date)->paginate(5);
-        }
-        // 一日後（'>'ボタン）
-        if ($request->input('next')  != null) {
-            $date = date('Y-m-d', strtotime('+1day', strtotime($request->input('date'))));
-            $attendances = Attendance::whereDate('date', $date)->paginate(5);
-        }
-
-        foreach ($attendances as $attendance) {
-            $rests = $attendance->rests;
-            $total_rest_time = 0;
-            foreach ($rests as $rest) {
-                $total_rest_time = $total_rest_time + strtotime($rest->rest_out) - strtotime($rest->rest_in);
-            }
-            $rest_hour = floor($total_rest_time / 3600); // 時を算出（1時間＝300秒）
-            $rest_minute = floor(($total_rest_time / 60) % 60); // 分を算出（1分＝60秒）
-            $rest_seconds = floor($total_rest_time % 60); //秒を算出
-            $attendance->rest_time = sprintf('%02d:%02d:%02d', $rest_hour, $rest_minute, $rest_seconds);
-            $restraint_time = strtotime($attendance->attendance_out) - strtotime($attendance->attendance_in);//就業開始時間と就業終了時間の差(拘束時間)
-            $total_work_time = $restraint_time - $total_rest_time; //拘束時間と合計休憩時間の差
-            $work_hour = floor($total_work_time / 3600);
-            $work_minute = floor(($total_work_time / 60) % 60);
-            $work_second = floor($total_work_time % 60);
-            $attendance->work_time = sprintf('%02d:%02d:%02d', $work_hour, $work_minute, $work_second);
-        }
-        return view('date', compact("date", "attendances"));
-    } 
+     // 日別一覧 / 抽出処理
+     public function perDate(Request $request)
+     {
+         $displayDate = Carbon::parse($request->input('displayDate'));
+ 
+         if ($request->has('prevDate')) {
+             $displayDate->subDay();
+         }
+ 
+         if ($request->has('nextDate')) {
+             $displayDate->addDay();
+         }
+ 
+         $users = DB::table('attendance_view_table')
+             ->whereDate('date', $displayDate)
+             ->paginate(5);
+ 
+         return view('attendance_date', compact('users', 'displayDate'));
+     }
 }

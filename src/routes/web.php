@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\RestController;
+use App\Http\Controllers\AuthenticatedSessionController;
+use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -18,17 +19,22 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth'])->name('dashboard');
+//ログインホーム
+Route::get('/',[AttendanceController::class,'punch'])
+    ->middleware('auth','verified');
 
 
-Route::group(['middleware' => ['auth']], function(){
-    Route::get('/index', [AttendanceController::class, 'index']);
-    Route::post('/attendancein', [AttendanceController::class, 'attendancein']);
-    Route::post('/attendanceout', [AttendanceController::class, 'attendanceout']);
-    Route::get('/date', [AttendanceController::class, 'dateindex']);
-    Route::post('/date', [AttendanceController::class, 'otherday']);
-    Route::post('/restin', [RestController::class, 'restin']);
-    Route::post('/restout', [RestController::class, 'restout']); 
-});
+// 打刻機能
+Route::post('/work', [AttendanceController::class, 'work'])
+    ->name('work');
+
+// ログアウト
+Route::get('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
+
+// 管理ページ / 日付別
+Route::get('/attendance/date', [AttendanceController::class, 'indexDate'])
+    ->name('attendance/date');
+Route::post('/attendance/date', [AttendanceController::class, 'perDate'])
+    ->name('per/date');
